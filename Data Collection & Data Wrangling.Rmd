@@ -1,8 +1,10 @@
 ---
 title: "Data Collection and Data Wrangling"
-author: "Sana Rasheed"
-date: "July 19, 2020"
-output: html_document
+author: "Taha Ahmad"
+date: "January 11, 2021"
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ##### NOTE: 
@@ -25,27 +27,34 @@ library(help='datasets')
 
 
 ```{r }
-USPersonalExpenditure
+#Question 1
+US_Expenditure_Variable<-USPersonalExpenditure
+US_Expenditure_Variable
 ```
 
 ```{r }
-### start solution ####
+
+#Question 2 Part 1
+
+Average<-c(mean(USPersonalExpenditure[1:5,1]),mean(USPersonalExpenditure[1:5,2]),mean(USPersonalExpenditure[1:5,3]),mean(USPersonalExpenditure[1:5,4]),mean(USPersonalExpenditure[1:5,5]))
+
+#Question 2 Part2
+
+standardDeviation<-c(sd(USPersonalExpenditure[1:5,1]),sd(USPersonalExpenditure[1:5,2]),sd(USPersonalExpenditure[1:5,3]),sd(USPersonalExpenditure[1:5,4]),sd(USPersonalExpenditure[1:5,5]))
+print(standardDeviation)
 ```
 
 
 ```{r }
+#Question 3
+RowAverage<-c(mean(USPersonalExpenditure[1,1:5]),mean(USPersonalExpenditure[2,1:5]),mean(USPersonalExpenditure[3,1:5]),mean(USPersonalExpenditure[4,1:5]),mean(USPersonalExpenditure[5,1:5]))
 
+
+data_2<-USPersonalExpenditure
+data_2<-cbind(USPersonalExpenditure,Mean_Indicator=RowAverage)
+data_2
 ```
 
-
-```{r }
-
-```
-
-
-```{r }
-
-```
 
 
 ```{r }
@@ -68,31 +77,92 @@ filename <- "msleep_ggplot2.csv"
 
 ```{r }
 ### start solution ####
+library(data.table)
+library(tidyverse)
+library(stringr)
+download.file(url, destfile = filename)
+
+ggdata <- read.table(filename, sep = ',', header = TRUE)
+cameradata <- read.csv(filename)
+data<-fread(filename)
+colnames(data)[colnames(data) == "order"] <- "Arrangement"
+#Renaming the column order into Arrangement as Order is basically a keyword in SQL 
+head(data)
+data1<-data
+```
+
+
+```{r }
+library(RSQLite)
+
+```
+
+
+
+
+```{r }
+#Create and Connect with database
+#
+data("data1")
+data1$car_names<-rownames(data1)#Mtcars table has been appended with a new column named car_names
+rownames(data1)<-c()#Numbering the rows only
+head(data1)
+
 ```
 
 
 ```{r }
 
+#Create a new column containing the average bodywt (body weight) of each genus and of each order.
+#data[1,1:11]
+conn<-dbConnect(RSQLite::SQLite(),"AppendedData.db")
+
+dbListTables(conn)
+dbListFields(conn,"data1")
+readDataVar<-dbReadTable(conn,"data1")
+readDataVar
+```
+
+
+```{r }
+#Query for the upper Condition
+#install.packages("RSQLite")
+dbGetQuery(conn,'SELECT "genus","Arrangement",AVG("bodywt") FROM "data1" GROUP BY "genus","Arrangement"
+           ')
+```
+
+
+```{r }
+#2.Create a dataframe containing the average REM sleep time for each order
+Order_DataFrame.data <-data.frame(dbGetQuery(conn,'SELECT 
+"Arrangement", AVG("sleep_rem") FROM "data1" 
+GROUP BY "Arrangement";
+           '))
+Order_DataFrame.data
+# How many missing values are there (in total) and per column?  
+MissingValues<-list()
+for (i in 1:12){
+ MissingValues[i]<-sum(is.na(data1[i])) 
+ }
+MissingValues
+
+
+```
+
+
+```
+4.How would you like to impute missing values? Write Justification.  <i> Hint: Overall Mean/media/mode vs. Groupby Mean/media/mode?
+
+The "Conservation" column has the most number of missing values, that can be neglected because (5/83)*100=6.02% of the entire column consists of missing values. Still if we want to refill those columns of integer type, then taking a median is the best solution as it can help us finding the missing values using the formula of Grouped Data where we can be able to find the values through observations from the class boundaries.'\n'
+So better solution is first to apply group by and then take median in order to find the missing integer values.
+
 ```
 
 
 ```{r }
 
-```
-
-
-```{r }
-
-```
-
-
-```{r }
-
-```
-
-
-```{r }
 ### end solution ###
+
 ```
 
 ### Good job! You've completed this section!
@@ -101,47 +171,55 @@ filename <- "msleep_ggplot2.csv"
 
 ### Question 1
 **Use the above dataset and perform the following tasks using any library from tidyverse:**  
-1. Filter results to print average REM sleep and average total sleep  for those animals who are carnivores and then for those who are primates.  
+1. Filter results to print average REM sleep and average total sleep for those animals who are carnivores and then for those who are primates.  
 2. Use the order column and "spread" it across the rest of the observations.  
 
 
 ```{r }
 ### start solution ####
+#1.Filter results to print average REM sleep and average total sleep  for those animals who are carnivores and then for those who are primates.
+
+
+library(tidyr)
+FilteringResults<-select(data1,Arrangement,sleep_total,sleep_rem)
+FilteringResults<-filter(FilteringResults,Arrangement=='Carnivora')
+FilteringResults2<-select(data1,Arrangement,sleep_total,sleep_rem)
+
+FilteringResults2<-filter(data1,Arrangement=='Primates')
+FilteringResults2%>%drop_na()
+FilteringResults%>%drop_na()
+
+#Printing the results
+
+print(FilteringResults)
+print("The mean REM sleep of Carnivora is ")
+print(mean(FilteringResults$sleep_rem))
+print("The mean sleep_total of Carnivora is ")
+print(mean(FilteringResults$sleep_total))
+
+print(FilteringResults2)
+print("The mean REM sleep of Primates is ")
+print(mean(FilteringResults2$sleep_rem))
+print("The mean sleep_total of Primates is ")
+print(mean(FilteringResults2$sleep_total))
+
 ```
 
 
 ```{r }
+#Use the order column and "spread" it across the rest of the observations
+data1%>%
+  spread(data=data1,key=Arrangement,value=genus)
+#  spread(data=data1,key = Arrangement)%>%gather(data = data1,,value=brainwt)%>%gather(data = data1,,value =  sleep_total)%>%gather(data=data1,,value =sleep_cycle)%>%gather(data=data1,,value =sleep_rem)
 
 ```
 
 
-```{r }
-
-```
-
-
-```{r }
-
-```
-
-
-```{r }
-
-```
-
-
-```{r }
-
-```
-
-
-```{r }
-
-```
 
 
 ```{r }
 ### end solution ####
+
 ```
 
 ### Good job! You've completed this entire exercise!
